@@ -149,7 +149,9 @@
         }
         .footer {
             margin-top: 40px;
-            text-align: right;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             color: #1976d2;
             font-size: 1.08rem;
             font-weight: 500;
@@ -157,6 +159,27 @@
             opacity: 0.85;
             padding: 18px 0 0 0;
             width: 100%;
+        }
+        .footer-right {
+            text-align: right;
+            flex: 1;
+        }
+        .source-link {
+            display: inline-block;
+            background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+            transition: background 0.2s, box-shadow 0.2s;
+            margin-right: 12px;
+        }
+        .source-link:hover {
+            background: linear-gradient(90deg, #42a5f5 0%, #1976d2 100%);
+            box-shadow: 0 4px 16px rgba(25, 118, 210, 0.18);
         }
         @media (max-width: 800px) {
             .timeline-container { padding: 10px; width: 100%; max-width: 100vw; }
@@ -172,7 +195,10 @@
         <div id="timeline-cycles"></div>
         <div class="timeline-bar" id="timeline-bar"></div>
         <div id="current-indicator"></div>
-        <footer class="footer">Created by Anil Indorkar</footer>
+        <footer class="footer">
+            <a href="https://www.notion.so/mindbody/18adda30e2318059a801d403b3f33936?v=18adda30e2318059ab15000c753efefe" target="_blank" rel="noopener" class="source-link">Source of Truth</a>
+            <span class="footer-right">Created by Anil Indorkar</span>
+        </footer>
     </div>
     <script>
         // Squad cycles data
