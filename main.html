@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squad Cycle Timeline</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f7f7f7; }
+        .timeline-container {
+            max-width: 1400px;
+            width: 150%;
+            margin: 0 auto;
+            background: #fff;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .timeline-bar { position: relative; height: 16px; background: #e0e0e0; border-radius: 8px; margin: 12px 0 20px 0; min-width: 100%; margin-top: 32px; } /* Add space above the timeline bar */
+        .cycle-segment { position: absolute; top: 0; height: 100%; background: #90caf9; border-radius: 8px; border: 1px solid #1976d2; opacity: 0.7; overflow: visible; min-width: 2%; }
+        .cycle-segment.current { background: #1976d2; opacity: 1; }
+        .cycle-label { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); font-size: 0.82rem; color: #1976d2; white-space: nowrap; background: #fff; padding: 0 4px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); border: 1px solid #e0e0e0; }
+        .timeline-indicator { position: absolute; top: -10px; width: 0; height: 36px; border-left: 4px solid #d32f2f; left: 0; z-index: 2; }
+        .indicator-label { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); color: #d32f2f; font-weight: bold; font-size: 0.95rem; background: #fff; padding: 2px 8px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+        #timeline-cycles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 32px; /* Increased space below squad cycle boxes */
+            margin-top: 0;
+        }
+        .cycle-info { background: #f0f4f8; border-radius: 8px; padding: 8px 14px; font-size: 0.95rem; color: #333; border: 1px solid #e0e0e0; }
+        .cycle-info.current { border: 2px solid #1976d2; background: #e3f2fd; color: #1976d2; }
+        #month-labels { display: none; }
+        @media (max-width: 800px) {
+            .timeline-container { padding: 10px; }
+            .cycle-label { font-size: 0.7rem; }
+            #timeline-cycles { gap: 6px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="timeline-container">
+        <h2>Squad Cycle Timeline</h2>
+        <div id="timeline-cycles"></div>
+        <div class="timeline-bar" id="timeline-bar"></div>
+        <div id="current-indicator"></div>
+    </div>
+    <script>
+        // Squad cycles data
+        const squadCycles = [
+            { name: '2025.Q1.H1', label: 'Past', start: '2024-12-04', end: '2025-02-18' },
+            { name: '2025.Q1.H2', label: 'Last', start: '2025-02-19', end: '2025-04-01' },
+            { name: '2025.Q2.H1', label: 'Current', start: '2025-04-02', end: '2025-05-14' },
+            { name: '2025.Q2.H2', label: 'Next', start: '2025-05-15', end: '2025-06-26' },
+            { name: '2025.Q3.H1', label: 'Future', start: '2025-06-27', end: '2025-08-01' },
+            { name: '2025.Q3.H2', label: 'Future', start: '2025-08-04', end: '2025-09-15' },
+            { name: '2025.Q4.H1', label: 'Future', start: '2025-09-16', end: null },
+            { name: '2025.Q4.H2', label: 'Future', start: null, end: null },
+        ];
+
+        // Find min and max dates for the timeline
+        const parseDate = d => d ? new Date(d) : null;
+        const allDates = squadCycles.flatMap(c => [parseDate(c.start), parseDate(c.end)]).filter(Boolean);
+        const minDate = new Date(Math.min(...allDates));
+        const maxDate = new Date(Math.max(...allDates));
+        const today = new Date('2025-05-26'); // Use current date
+
+        // Render cycles as segments
+        const bar = document.getElementById('timeline-bar');
+        bar.innerHTML = '';
+        let barHTML = '';
+        let minLeft = 100, maxRight = 0;
+        squadCycles.forEach((cycle, idx) => {
+            if (!cycle.start) return; // skip cycles with no start
+            const start = parseDate(cycle.start);
+            const end = cycle.end ? parseDate(cycle.end) : maxDate;
+            const total = maxDate - minDate;
+            const left = ((start - minDate) / total) * 100;
+            const width = ((end - start) / total) * 100;
+            minLeft = Math.min(minLeft, left);
+            maxRight = Math.max(maxRight, left + width);
+            const isCurrent = today >= start && today <= end;
+            barHTML += `<div class="cycle-segment${isCurrent ? ' current' : ''}" style="left:${left}%;width:${width}%" title="${cycle.name}: ${cycle.label}\n${cycle.start}${cycle.end ? ' → ' + cycle.end : ''}">
+                <span class="cycle-label">${cycle.name}</span>
+            </div>`;
+        });
+        bar.innerHTML = barHTML;
+        // Ensure the bar is always 100% width and segments are visible
+        bar.style.minWidth = '100%';
+        bar.style.overflow = 'visible';
+
+        // Render cycle labels below
+        const cyclesDiv = document.getElementById('timeline-cycles');
+        cyclesDiv.innerHTML = squadCycles.map(c => c.start ? `<div class="cycle-info${c.label === 'Current' ? ' current' : ''}"><b>${c.name}</b> <span>${c.label}</span><br><small>${c.start}${c.end ? ' → ' + c.end : ''}</small></div>` : '').join('');
+
+        // Show current date indicator
+        const indicator = document.getElementById('current-indicator');
+        const total = maxDate - minDate;
+        const elapsed = Math.max(0, Math.min(today - minDate, total));
+        const percent = total > 0 ? (elapsed / total) * 100 : 0;
+        indicator.innerHTML = `<div class="timeline-indicator" style="left:calc(${percent}% - 2px)">
+            <div class="indicator-label">${today.toLocaleDateString()}</div>
+        </div>`;
+    </script>
+</body>
+</html>
