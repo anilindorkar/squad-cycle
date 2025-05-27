@@ -5,16 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Squad Cycle Timeline</title>
     <style>
+        :root {
+            --bg-gradient: linear-gradient(120deg, #e3f0ff 0%, #f7f7f7 100%);
+            --container-bg: rgba(255,255,255,0.95);
+            --text-color: #1976d2;
+            --timeline-bg: linear-gradient(90deg, #e0e0e0 0%, #b3c6e7 100%);
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(120deg, #1a1a2e 0%, #16213e 100%);
+            --container-bg: rgba(26, 26, 46, 0.95);
+            --text-color: #90caf9;
+            --timeline-bg: linear-gradient(90deg, #2a2a3e 0%, #344869 100%);
+        }
+
         body {
             font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
             margin: 40px;
-            background: linear-gradient(120deg, #e3f0ff 0%, #f7f7f7 100%);
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            transition: background 0.3s ease;
         }
+
+        .theme-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-switch button {
+            background: var(--text-color);
+            color: var(--container-bg);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .theme-switch button:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
         .timeline-container {
             max-width: 1200px;
             width: 120%;
             margin: 0 auto;
-            background: rgba(255,255,255,0.95);
+            background: var(--container-bg);
             padding: 40px 48px 48px 48px;
             border-radius: 18px;
             box-shadow: 0 8px 32px rgba(25, 118, 210, 0.10), 0 1.5px 8px rgba(0,0,0,0.07);
@@ -26,7 +68,7 @@
         .timeline-bar {
             position: relative;
             height: 18px;
-            background: linear-gradient(90deg, #e0e0e0 0%, #b3c6e7 100%);
+            background: var(--timeline-bg);
             border-radius: 10px;
             margin: 24px 0 32px 0;
             min-width: 100%;
@@ -187,18 +229,247 @@
             #timeline-cycles { gap: 8px; }
             .cycle-info { min-width: 120px; padding: 8px 6px; font-size: 0.9rem; }
         }
+        .tooltip {
+            position: absolute;
+            background: var(--container-bg);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+            border: 1px solid var(--text-color);
+        }
+
+        .tooltip.visible {
+            display: block;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Skip to main content link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--text-color);
+            color: var(--container-bg);
+            padding: 8px;
+            z-index: 100;
+            transition: top 0.3s;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Focus styles */
+        .cycle-segment:focus-visible {
+            outline: 3px solid var(--text-color);
+            outline-offset: 2px;
+        }
+
+        .cycle-info:focus-visible {
+            outline: 3px solid var(--text-color);
+            outline-offset: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            background: var(--text-color);
+            color: var(--container-bg);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-button:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        .date-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .date-control input {
+            padding: 8px;
+            border-radius: 20px;
+            border: 1px solid var(--text-color);
+            background: var(--container-bg);
+            color: var(--text-color);
+        }
+
+        /* Detailed Timeline Styles */
+        .detailed-timeline {
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 2px solid var(--text-color);
+        }
+
+        .detailed-timeline h2 {
+            color: var(--text-color);
+            margin-bottom: 30px;
+        }
+
+        .timeline-entry {
+            display: flex;
+            margin-bottom: 30px;
+            position: relative;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-entry:hover {
+            opacity: 1;
+            transform: translateX(10px);
+        }
+
+        .timeline-entry.current {
+            opacity: 1;
+        }
+
+        .timeline-entry::before {
+            content: '';
+            position: absolute;
+            left: 120px;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            background: var(--text-color);
+            border-radius: 50%;
+            transform: translateY(-50%);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-entry.current::before {
+            background: #d32f2f;
+            box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.2);
+            width: 16px;
+            height: 16px;
+        }
+
+        .timeline-date {
+            width: 100px;
+            text-align: right;
+            padding-right: 40px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .timeline-content {
+            flex: 1;
+            padding-left: 40px;
+            border-left: 2px solid var(--text-color);
+            padding-bottom: 20px;
+        }
+
+        .timeline-entry.current .timeline-content {
+            border-left: 2px solid #d32f2f;
+        }
+
+        .timeline-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+
+        .timeline-entry.current .timeline-title {
+            color: #d32f2f;
+        }
+
+        .timeline-period {
+            font-size: 0.9em;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        .timeline-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 10px;
+            background: var(--text-color);
+            color: var(--container-bg);
+        }
+
+        .timeline-entry.current .timeline-status {
+            background: #d32f2f;
+        }
+
+        @media (max-width: 800px) {
+            .timeline-entry {
+                flex-direction: column;
+            }
+            .timeline-date {
+                width: 100%;
+                text-align: left;
+                padding-right: 0;
+                padding-bottom: 10px;
+            }
+            .timeline-entry::before {
+                left: 0;
+                top: 30px;
+            }
+            .timeline-content {
+                padding-left: 20px;
+                margin-left: 5px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="timeline-container">
-        <h2>Squad Cycle Timeline</h2>
-        <div id="timeline-cycles"></div>
-        <div class="timeline-bar" id="timeline-bar"></div>
-        <div id="current-indicator"></div>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="theme-switch">
+        <button onclick="toggleTheme()" id="theme-toggle">🌙 Dark Mode</button>
+    </div>
+    <div class="timeline-container" id="main-content">
+        <h1>Squad Cycle Timeline</h1>
+        <div class="controls">
+            <div class="date-control">
+                <label for="current-date">Current Date:</label>
+                <input type="date" id="current-date" onchange="updateCurrentDate(this.value)">
+            </div>
+            <button class="control-button" onclick="exportTimeline()">
+                📥 Export Timeline
+            </button>
+            <button class="control-button" onclick="resetToToday()">
+                ⏰ Reset to Today
+            </button>
+        </div>
+        <div id="timeline-cycles" role="list" aria-label="Squad cycles list"></div>
+        <div class="timeline-bar" id="timeline-bar" role="region" aria-label="Timeline visualization"></div>
+        <div id="current-indicator" role="complementary" aria-label="Current date indicator"></div>
+        <div id="tooltip" class="tooltip" role="tooltip"></div>
         <footer class="footer">
             <a href="https://www.notion.so/mindbody/18adda30e2318059a801d403b3f33936?v=18adda30e2318059ab15000c753efefe" target="_blank" rel="noopener" class="source-link">Source of Truth</a>
             <span class="footer-right">Created by Anil Indorkar</span>
         </footer>
+        
+        <div class="detailed-timeline">
+            <h2>Detailed Timeline View</h2>
+            <div id="detailed-timeline-content"></div>
+        </div>
     </div>
     <script>
         // Squad cycles data
@@ -218,7 +489,7 @@
         const allDates = squadCycles.flatMap(c => [parseDate(c.start), parseDate(c.end)]).filter(Boolean);
         const minDate = new Date(Math.min(...allDates));
         const maxDate = new Date(Math.max(...allDates));
-        const today = new Date('2025-05-26'); // Use current date
+        let today = new Date('2025-05-26'); // Use current date
 
         // Render cycles as segments
         const bar = document.getElementById('timeline-bar');
@@ -235,7 +506,25 @@
             minLeft = Math.min(minLeft, left);
             maxRight = Math.max(maxRight, left + width);
             const isCurrent = today >= start && today <= end;
-            barHTML += `<div class="cycle-segment${isCurrent ? ' current' : ''}" style="left:${left}%;width:${width}%" title="${cycle.name}: ${cycle.label}\n${cycle.start}${cycle.end ? ' → ' + cycle.end : ''}">
+            
+            const tooltipContent = `
+                <strong>${cycle.name}</strong><br>
+                Status: ${cycle.label}<br>
+                Start: ${cycle.start}<br>
+                End: ${cycle.end || 'TBD'}<br>
+                ${isCurrent ? '<em>Current Cycle</em>' : ''}
+            `;
+            
+            barHTML += `<div 
+                class="cycle-segment${isCurrent ? ' current' : ''}" 
+                style="left:${left}%;width:${width}%" 
+                role="button"
+                tabindex="0"
+                aria-label="${cycle.name}: ${cycle.label} from ${cycle.start}${cycle.end ? ' to ' + cycle.end : ''}"
+                onmouseover="showTooltip(event, '${tooltipContent}')"
+                onmouseout="hideTooltip()"
+                onkeypress="if(event.key === 'Enter') showTooltip(event, '${tooltipContent}')"
+                onblur="hideTooltip()">
                 <span class="cycle-label">${cycle.name}</span>
             </div>`;
         });
@@ -246,7 +535,16 @@
 
         // Render cycle labels below
         const cyclesDiv = document.getElementById('timeline-cycles');
-        cyclesDiv.innerHTML = squadCycles.map(c => c.start ? `<div class="cycle-info${c.label === 'Current' ? ' current' : ''}"><b>${c.name}</b> <span>${c.label}</span><br><small>${c.start}${c.end ? ' → ' + c.end : ''}</small></div>` : '').join('');
+        cyclesDiv.innerHTML = squadCycles.map(c => c.start ? 
+            `<div 
+                class="cycle-info${c.label === 'Current' ? ' current' : ''}"
+                role="listitem"
+                tabindex="0"
+                aria-label="${c.name} - ${c.label} cycle from ${c.start}${c.end ? ' to ' + c.end : ''}">
+                <b>${c.name}</b> 
+                <span>${c.label}</span><br>
+                <small>${c.start}${c.end ? ' → ' + c.end : ''}</small>
+            </div>` : '').join('');
 
         // Show current date indicator
         const indicator = document.getElementById('current-indicator');
@@ -256,6 +554,157 @@
         indicator.innerHTML = `<div class="timeline-indicator" style="left:calc(${percent}% - 2px)">
             <div class="indicator-label">${today.toLocaleDateString()}</div>
         </div>`;
+
+        // Add this before your existing script
+        function toggleTheme() {
+            const html = document.documentElement;
+            const button = document.getElementById('theme-toggle');
+            
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                button.innerHTML = '🌙 Dark Mode';
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                button.innerHTML = '☀️ Light Mode';
+            }
+            
+            // Save preference
+            localStorage.setItem('theme', html.getAttribute('data-theme') || 'light');
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.getElementById('theme-toggle').innerHTML = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+        }
+
+        // Add before existing script
+        function showTooltip(event, content) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = content;
+            tooltip.classList.add('visible');
+            
+            // Position tooltip
+            const rect = event.target.getBoundingClientRect();
+            tooltip.style.left = `${rect.left + window.scrollX}px`;
+            tooltip.style.top = `${rect.bottom + window.scrollY + 10}px`;
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.classList.remove('visible');
+        }
+
+        // Add before existing script
+        function getCurrentDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function updateCurrentDate(newDate) {
+            today = new Date(newDate);
+            renderTimeline();
+        }
+
+        function resetToToday() {
+            const currentDate = getCurrentDate();
+            document.getElementById('current-date').value = currentDate;
+            today = new Date();
+            renderTimeline();
+        }
+
+        function exportTimeline() {
+            const container = document.querySelector('.timeline-container');
+            
+            // Create a simplified version for export
+            const exportData = {
+                date: today.toISOString(),
+                cycles: squadCycles.map(cycle => ({
+                    name: cycle.name,
+                    label: cycle.label,
+                    start: cycle.start,
+                    end: cycle.end,
+                    isCurrent: today >= new Date(cycle.start) && (!cycle.end || today <= new Date(cycle.end))
+                }))
+            };
+            
+            // Create and trigger download
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = window.URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `squad-cycle-timeline-${today.toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Modify your existing render code to be reusable
+        function renderTimeline() {
+            const bar = document.getElementById('timeline-bar');
+            bar.innerHTML = '';
+            let barHTML = '';
+            let minLeft = 100, maxRight = 0;
+            
+            // ... existing cycle rendering code ...
+            
+            // Update the date input to match current date
+            document.getElementById('current-date').value = today.toISOString().split('T')[0];
+            
+            // Render the detailed timeline
+            renderDetailedTimeline();
+        }
+
+        // Add to your renderTimeline function
+        function renderDetailedTimeline() {
+            const container = document.getElementById('detailed-timeline-content');
+            const sortedCycles = [...squadCycles]
+                .filter(cycle => cycle.start)
+                .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+            container.innerHTML = sortedCycles.map(cycle => {
+                const start = new Date(cycle.start);
+                const end = cycle.end ? new Date(cycle.end) : null;
+                const isCurrent = today >= start && (!end || today <= end);
+                
+                const formatDate = (date) => {
+                    if (!date) return 'TBD';
+                    return date.toLocaleDateString('en-US', { 
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                };
+
+                return `
+                    <div class="timeline-entry${isCurrent ? ' current' : ''}" 
+                         role="listitem" 
+                         aria-current="${isCurrent ? 'true' : 'false'}">
+                        <div class="timeline-date">
+                            ${formatDate(start).split(',')[0]}
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">
+                                ${cycle.name}
+                                <span class="timeline-status">${cycle.label}</span>
+                            </div>
+                            <div class="timeline-period">
+                                ${formatDate(start)} - ${formatDate(end)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial date
+            document.getElementById('current-date').value = today.toISOString().split('T')[0];
+            renderTimeline();
+        });
     </script>
 </body>
 </html>
