@@ -10,7 +10,7 @@ A Streamlit web application that tracks stock prices and shows 52-week high/low 
 - Support for major US stocks
 
 ## Demo
-You can access the live demo at: [Your Streamlit URL after deployment]
+You can access the live demo at: [https://us-stock-insights.streamlit.app/]
 
 ## Local Development
 
