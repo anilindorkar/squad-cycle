@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 from datetime import datetime
 import time
+from database import init_supabase, cache_stock_data, get_cached_stock_data, save_watchlist, get_watchlist, get_popular_stocks
+import uuid
 
 st.set_page_config(page_title="Stock Price Tracker", page_icon="📈", layout="wide")
 
@@ -25,13 +27,19 @@ st.markdown("""
 st.title("📈 Stock Price Tracker")
 st.markdown("Get real-time stock prices and 52-week high/low analysis for multiple stocks")
 
-# Initialize session state for API key
+# Initialize database connection
+supabase = init_supabase()
+
+# Initialize session state
 if 'api_key' not in st.session_state:
     # Try to get API key from secrets first
     try:
         st.session_state.api_key = st.secrets["ALPHA_VANTAGE_API_KEY"]
     except:
         st.session_state.api_key = None
+
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())
 
 def get_stock_info(ticker_symbol):
     if not st.session_state.api_key:
@@ -42,6 +50,12 @@ def get_stock_info(ticker_symbol):
         It's free and takes just a minute to register!
         """)
         return None
+    
+    # Try to get cached data first
+    cached_data = get_cached_stock_data(supabase, ticker_symbol)
+    if cached_data:
+        st.info(f"📊 Using cached data for {ticker_symbol} (updated within last 15 minutes)")
+        return cached_data
         
     try:
         # Get Global Quote
@@ -81,13 +95,18 @@ def get_stock_info(ticker_symbol):
                 fifty_two_week_high = max(highs) if highs else None
                 
                 if fifty_two_week_low and fifty_two_week_high:
-                    return {
+                    stock_data = {
                         'symbol': ticker_symbol,
                         'current_price': current_price,
                         '52_week_low': fifty_two_week_low,
                         '52_week_high': fifty_two_week_high,
                         'company_name': company_name
                     }
+                    
+                    # Cache the data
+                    cache_stock_data(supabase, ticker_symbol, stock_data)
+                    
+                    return stock_data
         
         return None
         
@@ -146,26 +165,76 @@ def display_stock_info(stock_data):
         # Add divider
         st.markdown("<div class='stock-divider'></div>", unsafe_allow_html=True)
 
-# API Key input in sidebar (only if not in secrets)
+# Sidebar
+st.sidebar.title("🔧 Configuration")
+
+# API Key configuration
 if not st.session_state.api_key:
-    st.sidebar.title("API Configuration")
     api_key = st.sidebar.text_input("Enter Alpha Vantage API Key:", type="password")
     if api_key:
         st.session_state.api_key = api_key
 else:
-    st.sidebar.title("API Configuration")
     st.sidebar.success("API Key configured! ✅")
 
-# Create a text input for multiple stock symbols
+# Database status
+if supabase:
+    st.sidebar.success("Database connected! ✅")
+else:
+    st.sidebar.warning("Database not connected (optional)")
+
+# Watchlist management
+st.sidebar.title("📝 Watchlist")
+if supabase:
+    current_watchlist = get_watchlist(supabase, st.session_state.user_id)
+    
+    if current_watchlist:
+        st.sidebar.subheader("Your Watchlist:")
+        watchlist_str = ", ".join(current_watchlist)
+        st.sidebar.write(watchlist_str)
+        
+        if st.sidebar.button("Load Watchlist"):
+            st.session_state.ticker_input = watchlist_str
+            st.experimental_rerun()
+    
+    # Add to watchlist
+    new_symbol = st.sidebar.text_input("Add symbol to watchlist:").upper()
+    if st.sidebar.button("Add to Watchlist") and new_symbol:
+        if new_symbol not in current_watchlist:
+            current_watchlist.append(new_symbol)
+            if save_watchlist(supabase, st.session_state.user_id, current_watchlist):
+                st.sidebar.success(f"Added {new_symbol}!")
+                st.experimental_rerun()
+    
+    # Clear watchlist
+    if current_watchlist and st.sidebar.button("Clear Watchlist"):
+        save_watchlist(supabase, st.session_state.user_id, [])
+        st.experimental_rerun()
+
+# Popular stocks
+if supabase:
+    st.sidebar.title("🔥 Popular Stocks")
+    popular = get_popular_stocks(supabase, 5)
+    if popular:
+        for stock in popular:
+            if st.sidebar.button(f"{stock['symbol']} - {stock['name'][:20]}...", key=f"pop_{stock['symbol']}"):
+                st.session_state.ticker_input = stock['symbol']
+                st.experimental_rerun()
+
+# Main input
 ticker_input = st.text_input(
     "Enter stock symbols (comma-separated, e.g., AAPL, MSFT, GOOGL):", 
-    ""
+    value=getattr(st.session_state, 'ticker_input', ''),
+    key='main_input'
 ).upper().strip()
+
+# Update session state when input changes
+if ticker_input != getattr(st.session_state, 'ticker_input', ''):
+    st.session_state.ticker_input = ticker_input
 
 # Add some example stocks with their full names
 st.markdown("""
 #### Example input:
-TSLA,AMZN,META,GOOGL,AAPL,NVDA,MSFT
+AAPL, MSFT, GOOGL
 
 #### Available symbols:
 - AAPL (Apple Inc.)
@@ -200,13 +269,13 @@ if ticker_input and st.session_state.api_key:
 2. You have entered a valid API key
 3. You haven't exceeded the API rate limit (5 calls per minute for free tier)""")
             
-            # Add delay between requests to respect API limits
+            # Add delay between requests to respect API limits (only if not cached)
             if i < len(tickers) - 1:  # Don't delay after the last request
                 time.sleep(12)  # 12-second delay between stocks to stay within rate limits
     
     # Add note about data freshness
-    st.info("Note: Data is refreshed every minute during market hours.")
+    st.info("Note: Data is refreshed every minute during market hours. Cached data is used when available to reduce API calls.")
 
 # Add footer
 st.markdown("---")
-st.markdown("Data provided by Alpha Vantage API") 
+st.markdown("Data provided by Alpha Vantage API | Database: Supabase") 
