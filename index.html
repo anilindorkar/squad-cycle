@@ -474,15 +474,25 @@
     <script>
         // Squad cycles data
         const squadCycles = [
-            { name: '2025.Q1.H1', label: 'Past', start: '2024-12-04', end: '2025-02-18' },
-            { name: '2025.Q1.H2', label: 'Last', start: '2025-02-19', end: '2025-04-01' },
-            { name: '2025.Q2.H1', label: 'Current', start: '2025-04-02', end: '2025-05-14' },
-            { name: '2025.Q2.H2', label: 'Next', start: '2025-05-15', end: '2025-06-26' },
-            { name: '2025.Q3.H1', label: 'Future', start: '2025-06-27', end: '2025-08-01' },
-            { name: '2025.Q3.H2', label: 'Future', start: '2025-08-04', end: '2025-09-15' },
-            { name: '2025.Q4.H1', label: 'Future', start: '2025-09-16', end: null },
-            { name: '2025.Q4.H2', label: 'Future', start: null, end: null },
+            { name: '2025.Q1.H1', start: '2024-12-04', end: '2025-02-18' },
+            { name: '2025.Q1.H2', start: '2025-02-19', end: '2025-04-01' },
+            { name: '2025.Q2.H1', start: '2025-04-02', end: '2025-05-14' },
+            { name: '2025.Q2.H2', start: '2025-05-15', end: '2025-06-26' },
+            { name: '2025.Q3.H1', start: '2025-06-27', end: '2025-08-01' },
+            { name: '2025.Q3.H2', start: '2025-08-04', end: '2025-09-15' },
+            { name: '2025.Q4.H1', start: '2025-09-16', end: null },
+            { name: '2025.Q4.H2', start: null, end: null },
         ];
+
+        function getLabelForCycle(start, end, today) {
+            if (!start) return 'Future';
+            const startDate = new Date(start);
+            const endDate = end ? new Date(end) : null;
+            if (endDate && today > endDate) return 'Passed';
+            if (today >= startDate && (!endDate || today <= endDate)) return 'Current';
+            if (today < startDate) return 'Future';
+            return '';
+        }
 
         // Find min and max dates for the timeline
         const parseDate = d => d ? new Date(d) : null;
@@ -533,9 +543,15 @@
         bar.style.minWidth = '100%';
         bar.style.overflow = 'visible';
 
+        // Update labels dynamically based on current date
+        const updatedCycles = squadCycles.map(cycle => {
+            const label = getLabelForCycle(cycle.start, cycle.end, today);
+            return { ...cycle, label };
+        });
+
         // Render cycle labels below
         const cyclesDiv = document.getElementById('timeline-cycles');
-        cyclesDiv.innerHTML = squadCycles.map(c => c.start ? 
+        cyclesDiv.innerHTML = updatedCycles.map(c => c.start ? 
             `<div 
                 class="cycle-info${c.label === 'Current' ? ' current' : ''}"
                 role="listitem"
@@ -648,26 +664,83 @@
             let barHTML = '';
             let minLeft = 100, maxRight = 0;
             
-            // ... existing cycle rendering code ...
+            // Update labels dynamically based on current date
+            const updatedCycles = squadCycles.map(cycle => {
+                const label = getLabelForCycle(cycle.start, cycle.end, today);
+                return { ...cycle, label };
+            });
             
-            // Update the date input to match current date
-            document.getElementById('current-date').value = today.toISOString().split('T')[0];
-            
+            updatedCycles.forEach((cycle, idx) => {
+                if (!cycle.start) return;
+                const start = new Date(cycle.start);
+                const end = cycle.end ? new Date(cycle.end) : maxDate;
+                const total = maxDate - minDate;
+                const left = ((start - minDate) / total) * 100;
+                const width = ((end - start) / total) * 100;
+                minLeft = Math.min(minLeft, left);
+                maxRight = Math.max(maxRight, left + width);
+                const isCurrent = cycle.label === 'Current';
+                const tooltipContent = `
+                    <strong>${cycle.name}</strong><br>
+                    Status: ${cycle.label}<br>
+                    Start: ${cycle.start}<br>
+                    End: ${cycle.end || 'TBD'}<br>
+                    ${isCurrent ? '<em>Current Cycle</em>' : ''}
+                `;
+                barHTML += `<div 
+                    class="cycle-segment${isCurrent ? ' current' : ''}"
+                    style="left:${left}%;width:${width}%"
+                    role="button"
+                    tabindex="0"
+                    aria-label="${cycle.name}: ${cycle.label} from ${cycle.start}${cycle.end ? ' to ' + cycle.end : ''}"
+                    onmouseover="showTooltip(event, '${tooltipContent}')"
+                    onmouseout="hideTooltip()"
+                    onkeypress="if(event.key === 'Enter') showTooltip(event, '${tooltipContent}')"
+                    onblur="hideTooltip()">
+                    <span class="cycle-label">${cycle.name}</span>
+                </div>`;
+            });
+            bar.innerHTML = barHTML;
+            bar.style.minWidth = '100%';
+            bar.style.overflow = 'visible';
+
+            // Render cycle labels below
+            const cyclesDiv = document.getElementById('timeline-cycles');
+            cyclesDiv.innerHTML = updatedCycles.map(c => c.start ? 
+                `<div 
+                    class="cycle-info${c.label === 'Current' ? ' current' : ''}"
+                    role="listitem"
+                    tabindex="0"
+                    aria-label="${c.name} - ${c.label} cycle from ${c.start}${c.end ? ' to ' + c.end : ''}">
+                    <b>${c.name}</b> 
+                    <span>${c.label}</span><br>
+                    <small>${c.start}${c.end ? ' → ' + c.end : ''}</small>
+                </div>` : '').join('');
+
+            // Show current date indicator
+            const indicator = document.getElementById('current-indicator');
+            const total = maxDate - minDate;
+            const elapsed = Math.max(0, Math.min(today - minDate, total));
+            const percent = total > 0 ? (elapsed / total) * 100 : 0;
+            indicator.innerHTML = `<div class="timeline-indicator" style="left:calc(${percent}% - 2px)">
+                <div class="indicator-label">${today.toLocaleDateString()}</div>
+            </div>`;
+
             // Render the detailed timeline
-            renderDetailedTimeline();
+            renderDetailedTimeline(updatedCycles);
         }
 
         // Add to your renderTimeline function
-        function renderDetailedTimeline() {
+        function renderDetailedTimeline(updatedCycles) {
             const container = document.getElementById('detailed-timeline-content');
-            const sortedCycles = [...squadCycles]
+            const sortedCycles = [...updatedCycles]
                 .filter(cycle => cycle.start)
                 .sort((a, b) => new Date(a.start) - new Date(b.start));
 
             container.innerHTML = sortedCycles.map(cycle => {
                 const start = new Date(cycle.start);
                 const end = cycle.end ? new Date(cycle.end) : null;
-                const isCurrent = today >= start && (!end || today <= end);
+                const isCurrent = cycle.label === 'Current';
                 
                 const formatDate = (date) => {
                     if (!date) return 'TBD';
