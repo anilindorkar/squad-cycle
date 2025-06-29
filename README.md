@@ -46,7 +46,10 @@ pip install -r requirements.txt
 
 5. Run the app:
 ```bash
+1. Basic
 streamlit run app.py
+2. Advanced
+python -m streamlit run app_simple.py
 ```
 
 ### 2. Free Database Setup (Supabase)

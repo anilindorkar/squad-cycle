@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 from datetime import datetime
 import time
-import pandas as pd
 from database import init_supabase, cache_stock_data, get_cached_stock_data, save_watchlist, get_watchlist, get_popular_stocks
 import uuid
 
@@ -193,10 +192,10 @@ def display_stock_info(stock_data):
     else:
         st.error(f"❌ Failed to fetch data for {stock_data['symbol']}: {stock_data.get('error', 'Unknown error')}")
 
-def create_summary_table(processed_stocks):
-    """Create a summary table of all processed stocks"""
+def create_summary_list(processed_stocks):
+    """Create a summary list of all processed stocks"""
     if not processed_stocks:
-        return None
+        return []
     
     summary_data = []
     for stock in processed_stocks:
@@ -226,7 +225,39 @@ def create_summary_table(processed_stocks):
                 'Status': f"❌ {stock.get('error', 'Error')}"
             })
     
-    return pd.DataFrame(summary_data)
+    return summary_data
+
+def display_summary_table(summary_data):
+    """Display summary data as a simple table"""
+    if not summary_data:
+        return
+    
+    # Create header
+    st.markdown("### 📋 Summary Results")
+    
+    # Display as a simple table using markdown
+    headers = ['Symbol', 'Company', 'Current Price', '52W Low', '52W High', 'Above Low %', 'Below High %', 'Status']
+    
+    # Create markdown table
+    table_md = "| " + " | ".join(headers) + " |\n"
+    table_md += "| " + " | ".join(["---"] * len(headers)) + " |\n"
+    
+    for row in summary_data:
+        table_md += "| " + " | ".join([str(row[header]) for header in headers]) + " |\n"
+    
+    st.markdown(table_md)
+    
+    # Create CSV content for download
+    csv_content = ",".join(headers) + "\n"
+    for row in summary_data:
+        csv_content += ",".join([f'"{str(row[header])}"' for header in headers]) + "\n"
+    
+    st.download_button(
+        label="📥 Download Summary as CSV",
+        data=csv_content,
+        file_name=f"stock_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mime="text/csv"
+    )
 
 # Sidebar
 st.sidebar.title("🔧 Configuration")
@@ -292,7 +323,7 @@ if supabase:
 # Main input
 ticker_input = st.text_input(
     "Enter stock symbols (comma-separated, e.g., AAPL, MSFT, GOOGL):", 
-    value=getattr(st.session_state, 'ticker_input', ''),
+    value=getattr(st.session_state, 'ticker_input', 'AAPL, MSFT, GOOGL, AMZN, META, TSLA, NVDA'),
     key='main_input'
 ).upper().strip()
 
@@ -358,20 +389,10 @@ if ticker_input and st.session_state.api_key:
     
     # Create and display summary table
     if st.session_state.processed_stocks:
-        st.markdown("## 📋 Summary List")
-        summary_df = create_summary_table(st.session_state.processed_stocks)
+        summary_data = create_summary_list(st.session_state.processed_stocks)
         
-        if summary_df is not None:
-            st.dataframe(summary_df, use_container_width=True)
-            
-            # Add download button for CSV
-            csv = summary_df.to_csv(index=False)
-            st.download_button(
-                label="📥 Download Summary as CSV",
-                data=csv,
-                file_name=f"stock_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
-            )
+        if summary_data:
+            display_summary_table(summary_data)
             
             # Show statistics
             successful_count = len([s for s in st.session_state.processed_stocks if s.get('status') == 'success'])
