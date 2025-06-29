@@ -7,6 +7,27 @@ import uuid
 
 st.set_page_config(page_title="Stock Price Tracker", page_icon="📈", layout="wide")
 
+# Initialize session state first (before any other code that uses it)
+if 'api_key' not in st.session_state:
+    # Don't try to get API key from secrets if it's a placeholder
+    try:
+        secret_key = st.secrets.get("ALPHA_VANTAGE_API_KEY", "")
+        if secret_key and secret_key != "your_api_key_here":
+            st.session_state.api_key = secret_key
+        else:
+            st.session_state.api_key = None
+    except:
+        st.session_state.api_key = None
+
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())
+
+if 'processed_stocks' not in st.session_state:
+    st.session_state.processed_stocks = []
+
+if 'download_counter' not in st.session_state:
+    st.session_state.download_counter = 0
+
 # Add custom CSS
 st.markdown("""
     <style>
@@ -25,6 +46,30 @@ st.markdown("""
         padding: 10px;
         border-radius: 5px;
         border-left: 5px solid #1976d2;
+        margin: 10px 0;
+    }
+    .rate-limit-warning {
+        background-color: #fff3cd;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 5px solid #ffc107;
+        margin: 15px 0;
+    }
+    .countdown-timer {
+        background-color: #f8d7da;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid #dc3545;
+        margin: 20px 0;
+        text-align: center;
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+    .batch-info {
+        background-color: #d1ecf1;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 5px solid #17a2b8;
         margin: 10px 0;
     }
     .summary-table {
@@ -47,34 +92,30 @@ st.markdown("""
 
 # Title and description
 st.title("📈 Stock Price Tracker")
-st.markdown("Get real-time stock prices and 52-week high/low analysis - Processing one by one")
+st.markdown("Get real-time stock prices and 52-week high/low analysis - Smart Rate Limiting")
+
+# Show API key warning prominently if not configured
+if not st.session_state.api_key:
+    st.error("""
+    🔑 **Alpha Vantage API Key Required**
+    
+    To use this app, you need a free Alpha Vantage API key:
+    
+    1. **Get your free API key**: [Click here to register](https://www.alphavantage.co/support/#api-key)
+    2. **Enter the key** in the sidebar under "🔧 Configuration"
+    3. **Start tracking stocks** for free!
+    
+    The free tier includes 25 requests per day and 5 requests per minute.
+    """)
+    
+    st.info("💡 **Tip**: Registration takes less than 1 minute and gives you instant access to real-time stock data!")
 
 # Initialize database connection
 supabase = init_supabase()
 
-# Initialize session state
-if 'api_key' not in st.session_state:
-    # Try to get API key from secrets first
-    try:
-        st.session_state.api_key = st.secrets["ALPHA_VANTAGE_API_KEY"]
-    except:
-        st.session_state.api_key = None
-
-if 'user_id' not in st.session_state:
-    st.session_state.user_id = str(uuid.uuid4())
-
-if 'processed_stocks' not in st.session_state:
-    st.session_state.processed_stocks = []
-
 def get_stock_info(ticker_symbol):
     if not st.session_state.api_key:
-        st.error("""
-        Please enter your Alpha Vantage API key. You can get a free API key at:
-        https://www.alphavantage.co/support/#api-key
-        
-        It's free and takes just a minute to register!
-        """)
-        return None
+        return {'symbol': ticker_symbol, 'status': 'error', 'error': 'API key not configured'}
     
     # Try to get cached data first
     cached_data = get_cached_stock_data(supabase, ticker_symbol)
@@ -88,30 +129,61 @@ def get_stock_info(ticker_symbol):
         quote_response = requests.get(quote_url)
         quote_data = quote_response.json()
         
+        # Check for API errors first
+        if "Error Message" in quote_data:
+            return {'symbol': ticker_symbol, 'status': 'error', 'error': quote_data['Error Message']}
+        
+        if "Note" in quote_data:
+            return {'symbol': ticker_symbol, 'status': 'rate_limit', 'error': f"Rate limit: {quote_data['Note']}"}
+            
+        if "Information" in quote_data:
+            return {'symbol': ticker_symbol, 'status': 'rate_limit', 'error': f"API Info: {quote_data['Information']}"}
+        
         if "Global Quote" in quote_data and quote_data["Global Quote"]:
-            current_price = float(quote_data["Global Quote"]["05. price"])
+            global_quote = quote_data["Global Quote"]
+            
+            # Check if price data exists
+            price_key = "05. price"
+            if price_key not in global_quote:
+                return {'symbol': ticker_symbol, 'status': 'error', 'error': 'Price data not available'}
+            
+            current_price = float(global_quote[price_key])
             
             # Get Company Overview for the name
             overview_url = f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker_symbol}&apikey={st.session_state.api_key}"
             overview_response = requests.get(overview_url)
             overview_data = overview_response.json()
             
-            company_name = overview_data.get("Name", ticker_symbol)
+            if "Error Message" in overview_data:
+                company_name = ticker_symbol
+            else:
+                company_name = overview_data.get("Name", ticker_symbol)
             
             # Get Weekly Adjusted Time Series for 52-week high/low
             weekly_url = f"https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol={ticker_symbol}&apikey={st.session_state.api_key}"
             weekly_response = requests.get(weekly_url)
             weekly_data = weekly_response.json()
             
+            if "Error Message" in weekly_data:
+                return {'symbol': ticker_symbol, 'status': 'error', 'error': weekly_data['Error Message']}
+            
+            if "Note" in weekly_data:
+                return {'symbol': ticker_symbol, 'status': 'rate_limit', 'error': f"Rate limit: {weekly_data['Note']}"}
+                
+            if "Information" in weekly_data:
+                return {'symbol': ticker_symbol, 'status': 'rate_limit', 'error': f"API Info: {weekly_data['Information']}"}
+            
             if "Weekly Adjusted Time Series" in weekly_data:
+                time_series = weekly_data["Weekly Adjusted Time Series"]
+                
                 # Get data from the last 52 weeks
                 highs = []
                 lows = []
                 count = 0
-                for date in sorted(weekly_data["Weekly Adjusted Time Series"].keys(), reverse=True):
+                for date in sorted(time_series.keys(), reverse=True):
                     if count < 52:  # Only look at last 52 weeks
-                        lows.append(float(weekly_data["Weekly Adjusted Time Series"][date]["3. low"]))
-                        highs.append(float(weekly_data["Weekly Adjusted Time Series"][date]["2. high"]))
+                        lows.append(float(time_series[date]["3. low"]))
+                        highs.append(float(time_series[date]["2. high"]))
                         count += 1
                     else:
                         break
@@ -133,8 +205,12 @@ def get_stock_info(ticker_symbol):
                     cache_stock_data(supabase, ticker_symbol, stock_data)
                     
                     return stock_data
-        
-        return {'symbol': ticker_symbol, 'status': 'error', 'error': 'No data available'}
+                else:
+                    return {'symbol': ticker_symbol, 'status': 'error', 'error': 'Could not calculate 52-week range'}
+            else:
+                return {'symbol': ticker_symbol, 'status': 'error', 'error': 'No historical data available'}
+        else:
+            return {'symbol': ticker_symbol, 'status': 'error', 'error': 'No quote data available'}
         
     except Exception as e:
         return {'symbol': ticker_symbol, 'status': 'error', 'error': str(e)}
@@ -190,7 +266,10 @@ def display_stock_info(stock_data):
         # Add divider
         st.markdown("<div class='stock-divider'></div>", unsafe_allow_html=True)
     else:
-        st.error(f"❌ Failed to fetch data for {stock_data['symbol']}: {stock_data.get('error', 'Unknown error')}")
+        if stock_data.get('status') == 'rate_limit':
+            st.error(f"🛑 Rate limit reached for {stock_data['symbol']}: {stock_data.get('error', 'Rate limit exceeded')}")
+        else:
+            st.error(f"❌ Failed to fetch data for {stock_data['symbol']}: {stock_data.get('error', 'Unknown error')}")
 
 def create_summary_list(processed_stocks):
     """Create a summary list of all processed stocks"""
@@ -214,6 +293,7 @@ def create_summary_list(processed_stocks):
                 'Status': '✅ Success'
             })
         else:
+            status_icon = "🛑" if stock.get('status') == 'rate_limit' else "❌"
             summary_data.append({
                 'Symbol': stock['symbol'],
                 'Company': 'N/A',
@@ -222,7 +302,7 @@ def create_summary_list(processed_stocks):
                 '52W High': 'N/A',
                 'Above Low %': 'N/A',
                 'Below High %': 'N/A',
-                'Status': f"❌ {stock.get('error', 'Error')}"
+                'Status': f"{status_icon} {stock.get('error', 'Error')}"
             })
     
     return summary_data
@@ -252,29 +332,207 @@ def display_summary_table(summary_data):
     for row in summary_data:
         csv_content += ",".join([f'"{str(row[header])}"' for header in headers]) + "\n"
     
+    # Increment download counter for unique key
+    st.session_state.download_counter += 1
+    
     st.download_button(
         label="📥 Download Summary as CSV",
         data=csv_content,
         file_name=f"stock_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-        mime="text/csv"
+        mime="text/csv",
+        key=f"download_csv_{st.session_state.download_counter}"
     )
+
+def countdown_timer(seconds, message):
+    """Display a countdown timer"""
+    countdown_placeholder = st.empty()
+    
+    for remaining in range(seconds, 0, -1):
+        mins, secs = divmod(remaining, 60)
+        countdown_placeholder.markdown(f"""
+        <div class='countdown-timer'>
+            ⏳ {message}<br/>
+            <span style='font-size: 2em; color: #dc3545;'>{mins:02d}:{secs:02d}</span><br/>
+            <small>Waiting for API rate limit reset...</small>
+        </div>
+        """, unsafe_allow_html=True)
+        time.sleep(1)
+    
+    countdown_placeholder.empty()
+
+def process_stocks_with_rate_limiting(tickers):
+    """Process stocks in batches respecting API rate limits"""
+    BATCH_SIZE = 5
+    WAIT_TIME = 60  # 1 minute between batches
+    
+    # Clear previous results
+    st.session_state.processed_stocks = []
+    
+    # Check daily limit warning
+    if len(tickers) > 25:
+        st.warning(f"""
+        ⚠️ **Daily Limit Warning**
+        
+        You're requesting {len(tickers)} symbols, but Alpha Vantage free tier only allows **25 requests per day**.
+        
+        **Recommendation**: 
+        - Process only your most important 25 stocks today
+        - Consider upgrading to a paid plan for higher limits
+        - Or spread your requests across multiple days
+        """)
+    
+    # Split tickers into batches
+    batches = [tickers[i:i + BATCH_SIZE] for i in range(0, len(tickers), BATCH_SIZE)]
+    
+    # Display batch information
+    if len(batches) > 1:
+        st.markdown(f"""
+        <div class='rate-limit-warning'>
+            ⚠️ <strong>Rate Limit Management</strong><br/>
+            Processing {len(tickers)} symbols in {len(batches)} batch(es) of {BATCH_SIZE} stocks each.<br/>
+            There will be a 1-minute wait between batches to respect Alpha Vantage's 5 calls/minute limit.<br/>
+            <strong>Daily limit: {len(tickers)} of 25 requests will be used today.</strong>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    total_processed = 0
+    
+    for batch_num, batch_tickers in enumerate(batches, 1):
+        # Display batch info
+        st.markdown(f"""
+        <div class='batch-info'>
+            📦 <strong>Processing Batch {batch_num} of {len(batches)}</strong><br/>
+            Symbols: {', '.join(batch_tickers)}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create progress tracking for this batch
+        batch_progress = st.progress(0)
+        batch_status = st.empty()
+        
+        # Process each stock in the current batch
+        for i, ticker in enumerate(batch_tickers):
+            # Update progress
+            progress = (i + 1) / len(batch_tickers)
+            batch_progress.progress(progress)
+            batch_status.markdown(f"<div class='processing-status'>🔄 Processing {ticker} ({i+1}/{len(batch_tickers)} in batch {batch_num})</div>", unsafe_allow_html=True)
+            
+            # Fetch stock data
+            stock_data = get_stock_info(ticker)
+            
+            # Check for rate limit error and stop processing immediately
+            if stock_data and stock_data.get('status') == 'rate_limit':
+                st.session_state.processed_stocks.append(stock_data)
+                batch_progress.empty()
+                batch_status.empty()
+                
+                st.error(f"""
+                🛑 **Processing Stopped - API Rate Limit Reached**
+                
+                **Error on symbol**: {ticker}
+                **Error message**: {stock_data.get('error', 'Rate limit exceeded')}
+                
+                **What happened**: Alpha Vantage API rate limit has been exceeded.
+                
+                **Next steps**:
+                1. Wait for the rate limit to reset (usually 1 minute)
+                2. Try again with fewer symbols
+                3. Consider upgrading to a paid Alpha Vantage plan for higher limits
+                
+                **Processed so far**: {total_processed} out of {len(tickers)} symbols
+                """)
+                
+                # Display summary of what was processed so far
+                if st.session_state.processed_stocks:
+                    st.markdown("### 📊 Partial Results (Before Rate Limit)")
+                    summary_data = create_summary_list(st.session_state.processed_stocks)
+                    if summary_data:
+                        display_summary_table(summary_data)
+                
+                return  # Stop all processing immediately
+            
+            # Store result
+            st.session_state.processed_stocks.append(stock_data)
+            total_processed += 1
+            
+            # Display individual result
+            if stock_data:
+                display_stock_info(stock_data)
+            
+            # Add delay between requests within batch (12 seconds to be safe)
+            if i < len(batch_tickers) - 1:
+                time.sleep(12)
+        
+        # Clear batch progress
+        batch_progress.empty()
+        batch_status.markdown(f"<div class='processing-status'>✅ Batch {batch_num} Complete! ({len(batch_tickers)} stocks processed)</div>", unsafe_allow_html=True)
+        
+        # Wait between batches (except for the last batch)
+        if batch_num < len(batches):
+            st.markdown(f"""
+            <div class='rate-limit-warning'>
+                🕐 <strong>Rate Limit Break</strong><br/>
+                Completed batch {batch_num} of {len(batches)}. Waiting 1 minute before processing next batch...
+            </div>
+            """, unsafe_allow_html=True)
+            
+            countdown_timer(WAIT_TIME, f"Next batch ({batch_num + 1}/{len(batches)}) starts in:")
+    
+    # Final completion message
+    st.markdown(f"""
+    <div class='processing-status'>
+        🎉 <strong>All Processing Complete!</strong><br/>
+        Successfully processed {total_processed} stocks across {len(batches)} batch(es).
+    </div>
+    """, unsafe_allow_html=True)
 
 # Sidebar
 st.sidebar.title("🔧 Configuration")
 
-# API Key configuration
+# API Key configuration - make it prominent
+st.sidebar.markdown("### 🔑 Alpha Vantage API Key")
 if not st.session_state.api_key:
-    api_key = st.sidebar.text_input("Enter Alpha Vantage API Key:", type="password")
+    st.sidebar.error("⚠️ API Key Required")
+    st.sidebar.markdown("""
+    **Get your free API key:**
+    1. [Register here](https://www.alphavantage.co/support/#api-key)
+    2. Copy your API key
+    3. Paste it below
+    """)
+    api_key = st.sidebar.text_input(
+        "Enter your API key:", 
+        type="password",
+        placeholder="Paste your Alpha Vantage API key here"
+    )
     if api_key:
         st.session_state.api_key = api_key
+        st.sidebar.success("✅ API Key saved!")
+        st.rerun()
 else:
-    st.sidebar.success("API Key configured! ✅")
+    st.sidebar.success("✅ API Key configured!")
+    if st.sidebar.button("🔄 Change API Key"):
+        st.session_state.api_key = None
+        st.rerun()
 
 # Database status
 if supabase:
     st.sidebar.success("Database connected! ✅")
 else:
     st.sidebar.warning("Database not connected (optional)")
+
+# Rate limit info
+st.sidebar.title("⏱️ Rate Limit Info")
+st.sidebar.info("""
+**Alpha Vantage Free Tier:**
+- 5 calls per minute
+- 25 calls per day
+
+**Smart Processing:**
+- Batches of 5 stocks
+- 1-minute wait between batches
+- 12-second delay between stocks
+- **Auto-stops on rate limit errors**
+""")
 
 # Processing controls
 st.sidebar.title("⚙️ Processing Controls")
@@ -321,11 +579,18 @@ if supabase:
                 st.rerun()
 
 # Main input
-ticker_input = st.text_input(
-    "Enter stock symbols (comma-separated, e.g., AAPL, MSFT, GOOGL):", 
-    value=getattr(st.session_state, 'ticker_input', 'AAPL, MSFT, GOOGL, AMZN, META, TSLA, NVDA'),
-    key='main_input'
-).upper().strip()
+col1, col2 = st.columns([4, 1])
+
+with col1:
+    ticker_input = st.text_input(
+        "Enter stock symbols (comma-separated, e.g., AAPL, MSFT, GOOGL):", 
+        value=getattr(st.session_state, 'ticker_input', 'AAPL, MSFT, GOOGL, AMZN, META'),
+        key='main_input'
+    ).upper().strip()
+
+with col2:
+    st.markdown("<br/>", unsafe_allow_html=True)  # Add spacing to align with input
+    fetch_button = st.button("📊 Fetch Data", type="primary", use_container_width=True)
 
 # Update session state when input changes
 if ticker_input != getattr(st.session_state, 'ticker_input', ''):
@@ -333,10 +598,12 @@ if ticker_input != getattr(st.session_state, 'ticker_input', ''):
 
 # Add some example stocks with their full names
 st.markdown("""
-#### Example input:
-AAPL, MSFT, GOOGL
+#### Example input (5 stocks - conservative for daily limit):
+AAPL, MSFT, GOOGL, AMZN, META
 
-#### Available symbols:
+#### ⚠️ Daily Limit: 25 requests per day (Free tier)
+
+#### Popular symbols:
 - AAPL (Apple Inc.)
 - MSFT (Microsoft Corporation)
 - GOOGL (Alphabet Inc.)
@@ -345,69 +612,81 @@ AAPL, MSFT, GOOGL
 - TSLA (Tesla Inc.)
 - NVDA (NVIDIA Corporation)
 - JPM (JPMorgan Chase & Co.)
+- NFLX (Netflix Inc.)
+- DIS (The Walt Disney Company)
+
+💡 **Tip**: With 25 daily requests, focus on your most important stocks!
 """)
 
-if ticker_input and st.session_state.api_key:
+# Only process when the fetch button is clicked
+if fetch_button and ticker_input and st.session_state.api_key:
     # Split and clean the input
     tickers = [t.strip() for t in ticker_input.split(',') if t.strip()]
     
-    if len(tickers) > 5:
-        st.warning("⚠️ Due to API limits, please enter 5 or fewer symbols at a time.")
-        tickers = tickers[:5]
-    
-    # Clear previous results
-    st.session_state.processed_stocks = []
-    
-    # Create progress tracking
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    # Process each ticker one by one
-    for i, ticker in enumerate(tickers):
-        # Update progress
-        progress = (i + 1) / len(tickers)
-        progress_bar.progress(progress)
-        status_text.markdown(f"<div class='processing-status'>🔄 Processing {ticker} ({i+1}/{len(tickers)})</div>", unsafe_allow_html=True)
+    if len(tickers) > 0:
+        # Display processing plan
+        batch_count = (len(tickers) + 4) // 5  # Ceiling division
+        estimated_time = (batch_count - 1) * 60 + len(tickers) * 12  # Wait time + processing time
         
-        # Fetch stock data
-        stock_data = get_stock_info(ticker)
+        st.markdown(f"""
+        ### 📊 Processing Plan
+        - **Total Symbols**: {len(tickers)}
+        - **Batches**: {batch_count} (max 5 symbols per batch)
+        - **Estimated Time**: ~{estimated_time // 60} minutes {estimated_time % 60} seconds
+        """)
         
-        # Store result
-        st.session_state.processed_stocks.append(stock_data)
+        # Process stocks with intelligent rate limiting
+        process_stocks_with_rate_limiting(tickers)
         
-        # Display individual result
-        if stock_data:
-            display_stock_info(stock_data)
-        
-        # Add delay between requests to respect API limits (only if not cached)
-        if i < len(tickers) - 1:  # Don't delay after the last request
-            time.sleep(12)  # 12-second delay between stocks to stay within rate limits
-    
-    # Clear progress indicators
-    progress_bar.empty()
-    status_text.markdown("<div class='processing-status'>✅ Processing Complete!</div>", unsafe_allow_html=True)
-    
-    # Create and display summary table
-    if st.session_state.processed_stocks:
-        summary_data = create_summary_list(st.session_state.processed_stocks)
-        
-        if summary_data:
-            display_summary_table(summary_data)
+        # Create and display summary table
+        if st.session_state.processed_stocks:
+            summary_data = create_summary_list(st.session_state.processed_stocks)
             
-            # Show statistics
-            successful_count = len([s for s in st.session_state.processed_stocks if s.get('status') == 'success'])
-            failed_count = len(st.session_state.processed_stocks) - successful_count
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Processed", len(st.session_state.processed_stocks))
-            with col2:
-                st.metric("Successful", successful_count)
-            with col3:
-                st.metric("Failed", failed_count)
+            if summary_data:
+                display_summary_table(summary_data)
+                
+                # Show statistics
+                successful_count = len([s for s in st.session_state.processed_stocks if s.get('status') == 'success'])
+                failed_count = len(st.session_state.processed_stocks) - successful_count
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Processed", len(st.session_state.processed_stocks))
+                with col2:
+                    st.metric("Successful", successful_count)
+                with col3:
+                    st.metric("Failed", failed_count)
+        
+        # Add note about data freshness
+        st.info("Note: Data is refreshed every minute during market hours. Cached data is used when available to reduce API calls.")
+
+elif fetch_button and not st.session_state.api_key:
+    st.error("⚠️ Please enter your Alpha Vantage API key in the sidebar before fetching data.")
+
+elif fetch_button and not ticker_input:
+    st.warning("⚠️ Please enter at least one stock symbol before fetching data.")
+
+# Display previous results if they exist (without the fetch button being clicked)
+elif st.session_state.processed_stocks and not fetch_button:
+    st.markdown("### 📋 Previous Results")
+    summary_data = create_summary_list(st.session_state.processed_stocks)
     
-    # Add note about data freshness
-    st.info("Note: Data is refreshed every minute during market hours. Cached data is used when available to reduce API calls.")
+    if summary_data:
+        display_summary_table(summary_data)
+        
+        # Show statistics
+        successful_count = len([s for s in st.session_state.processed_stocks if s.get('status') == 'success'])
+        failed_count = len(st.session_state.processed_stocks) - successful_count
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Processed", len(st.session_state.processed_stocks))
+        with col2:
+            st.metric("Successful", successful_count)
+        with col3:
+            st.metric("Failed", failed_count)
+    
+    st.info("💡 Click 'Fetch Data' button to update with current symbols or get fresh data.")
 
 # Add footer
 st.markdown("---")
