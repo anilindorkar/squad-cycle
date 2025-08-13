@@ -54,7 +54,7 @@
 
         .timeline-container {
             max-width: 1200px;
-            width: 120%;
+            width: 100%;
             margin: 0 auto;
             background: var(--container-bg);
             padding: 40px 48px 48px 48px;
@@ -62,9 +62,11 @@
             box-shadow: 0 8px 32px rgba(25, 118, 210, 0.10), 0 1.5px 8px rgba(0,0,0,0.07);
             transition: box-shadow 0.3s;
         }
+
         .timeline-container:hover {
             box-shadow: 0 12px 40px rgba(25, 118, 210, 0.18), 0 2px 12px rgba(0,0,0,0.10);
         }
+
         .timeline-bar {
             position: relative;
             height: 18px;
@@ -75,6 +77,7 @@
             margin-top: 32px;
             box-shadow: 0 2px 8px rgba(25, 118, 210, 0.07);
         }
+
         .cycle-segment {
             position: absolute;
             top: 0;
@@ -82,23 +85,20 @@
             background: linear-gradient(90deg, #90caf9 0%, #1976d2 100%);
             border-radius: 10px;
             border: none;
-            opacity: 0.85;
+            opacity: 0.3;
             overflow: visible;
             min-width: 2%;
             transition: background 0.3s, opacity 0.3s;
             box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
         }
+
         .cycle-segment.current {
             background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
             opacity: 1;
             z-index: 2;
             box-shadow: 0 4px 16px rgba(25, 118, 210, 0.18);
         }
-        .cycle-segment:hover {
-            opacity: 1;
-            background: linear-gradient(90deg, #42a5f5 0%, #1976d2 100%);
-            cursor: pointer;
-        }
+
         .cycle-label {
             position: absolute;
             top: -32px;
@@ -115,13 +115,17 @@
             font-weight: 600;
             letter-spacing: 0.02em;
             transition: color 0.2s, border 0.2s;
+            opacity: 0.6;
         }
+
         .cycle-segment.current .cycle-label {
             color: #fff;
             background: #1976d2;
             border: 1.5px solid #fff;
             box-shadow: 0 2px 12px rgba(25, 118, 210, 0.18);
+            opacity: 1;
         }
+
         .timeline-indicator {
             position: absolute;
             top: -18px;
@@ -132,11 +136,13 @@
             z-index: 3;
             animation: indicator-pop 0.7s cubic-bezier(.68,-0.55,.27,1.55);
         }
+
         @keyframes indicator-pop {
             0% { height: 0; opacity: 0; }
             60% { height: 60px; opacity: 1; }
             100% { height: 54px; opacity: 1; }
         }
+
         .indicator-label {
             position: absolute;
             top: 38px;
@@ -153,10 +159,12 @@
             letter-spacing: 0.02em;
             animation: fade-in 1s;
         }
+
         @keyframes fade-in {
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
         #timeline-cycles {
             display: flex;
             flex-wrap: wrap;
@@ -165,6 +173,7 @@
             margin-bottom: 40px;
             margin-top: 0;
         }
+
         .cycle-info {
             background: linear-gradient(120deg, #e3f0ff 0%, #f7f7f7 100%);
             border-radius: 12px;
@@ -177,18 +186,17 @@
             min-width: 220px;
             text-align: center;
             transition: border 0.2s, box-shadow 0.2s;
+            opacity: 0.6;
         }
+
         .cycle-info.current {
             border: 2.5px solid #1976d2;
             background: linear-gradient(120deg, #1976d2 0%, #64b5f6 100%);
             color: #fff;
             box-shadow: 0 2px 16px rgba(25, 118, 210, 0.18);
+            opacity: 1;
         }
-        .cycle-info:hover {
-            border: 2.5px solid #42a5f5;
-            box-shadow: 0 4px 16px rgba(25, 118, 210, 0.18);
-            cursor: pointer;
-        }
+
         .footer {
             margin-top: 40px;
             display: flex;
@@ -202,10 +210,7 @@
             padding: 18px 0 0 0;
             width: 100%;
         }
-        .footer-right {
-            text-align: right;
-            flex: 1;
-        }
+
         .source-link {
             display: inline-block;
             background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
@@ -219,268 +224,114 @@
             transition: background 0.2s, box-shadow 0.2s;
             margin-right: 12px;
         }
+
         .source-link:hover {
             background: linear-gradient(90deg, #42a5f5 0%, #1976d2 100%);
             box-shadow: 0 4px 16px rgba(25, 118, 210, 0.18);
         }
+
         @media (max-width: 800px) {
             .timeline-container { padding: 10px; width: 100%; max-width: 100vw; }
             .cycle-label { font-size: 0.7rem; }
             #timeline-cycles { gap: 8px; }
             .cycle-info { min-width: 120px; padding: 8px 6px; font-size: 0.9rem; }
         }
-        .tooltip {
-            position: absolute;
-            background: var(--container-bg);
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-            z-index: 1000;
-            display: none;
-            max-width: 300px;
-            border: 1px solid var(--text-color);
-        }
 
-        .tooltip.visible {
-            display: block;
-            animation: fadeIn 0.2s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Skip to main content link */
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background: var(--text-color);
-            color: var(--container-bg);
-            padding: 8px;
-            z-index: 100;
-            transition: top 0.3s;
-        }
-
-        .skip-link:focus {
-            top: 0;
-        }
-
-        /* Focus styles */
-        .cycle-segment:focus-visible {
-            outline: 3px solid var(--text-color);
-            outline-offset: 2px;
-        }
-
-        .cycle-info:focus-visible {
-            outline: 3px solid var(--text-color);
-            outline-offset: 2px;
-        }
-
-        .controls {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-        .control-button {
-            background: var(--text-color);
-            color: var(--container-bg);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .control-button:hover {
-            opacity: 0.9;
-            transform: scale(1.05);
-        }
-
-        .date-control {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .date-control input {
-            padding: 8px;
-            border-radius: 20px;
-            border: 1px solid var(--text-color);
-            background: var(--container-bg);
-            color: var(--text-color);
-        }
-
-        /* Detailed Timeline Styles */
-        .detailed-timeline {
-            margin-top: 60px;
-            padding-top: 40px;
-            border-top: 2px solid var(--text-color);
-        }
-
-        .detailed-timeline h2 {
-            color: var(--text-color);
-            margin-bottom: 30px;
-        }
-
-        .timeline-entry {
-            display: flex;
-            margin-bottom: 30px;
-            position: relative;
-            opacity: 0.8;
-            transition: all 0.3s ease;
-        }
-
-        .timeline-entry:hover {
-            opacity: 1;
-            transform: translateX(10px);
-        }
-
-        .timeline-entry.current {
-            opacity: 1;
-        }
-
-        .timeline-entry::before {
-            content: '';
-            position: absolute;
-            left: 120px;
-            top: 50%;
-            width: 12px;
-            height: 12px;
-            background: var(--text-color);
-            border-radius: 50%;
-            transform: translateY(-50%);
-            transition: all 0.3s ease;
-        }
-
-        .timeline-entry.current::before {
-            background: #d32f2f;
-            box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.2);
-            width: 16px;
-            height: 16px;
-        }
-
-        .timeline-date {
-            width: 100px;
-            text-align: right;
-            padding-right: 40px;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-
-        .timeline-content {
-            flex: 1;
-            padding-left: 40px;
-            border-left: 2px solid var(--text-color);
-            padding-bottom: 20px;
-        }
-
-        .timeline-entry.current .timeline-content {
-            border-left: 2px solid #d32f2f;
-        }
-
-        .timeline-title {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: var(--text-color);
-            margin-bottom: 5px;
-        }
-
-        .timeline-entry.current .timeline-title {
-            color: #d32f2f;
-        }
-
-        .timeline-period {
-            font-size: 0.9em;
-            color: var(--text-color);
-            opacity: 0.8;
-        }
-
-        .timeline-status {
-            display: inline-block;
-            padding: 2px 8px;
+        .current-cycle-highlight {
+            background: linear-gradient(120deg, #1976d2 0%, #64b5f6 100%);
+            color: #fff;
+            padding: 20px;
             border-radius: 12px;
-            font-size: 0.8em;
-            margin-left: 10px;
-            background: var(--text-color);
-            color: var(--container-bg);
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(25, 118, 210, 0.18);
         }
 
-        .timeline-entry.current .timeline-status {
-            background: #d32f2f;
+        .current-cycle-highlight h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.5em;
         }
 
-        @media (max-width: 800px) {
-            .timeline-entry {
-                flex-direction: column;
-            }
-            .timeline-date {
-                width: 100%;
-                text-align: left;
-                padding-right: 0;
-                padding-bottom: 10px;
-            }
-            .timeline-entry::before {
-                left: 0;
-                top: 30px;
-            }
-            .timeline-content {
-                padding-left: 20px;
-                margin-left: 5px;
-            }
+        .current-cycle-highlight p {
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin: 15px 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffffff 0%, #f0f0f0 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+
+        .progress-percentage {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .days-info {
+            font-size: 0.9em;
+            opacity: 0.9;
         }
     </style>
 </head>
 <body>
-    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div class="theme-switch">
         <button onclick="toggleTheme()" id="theme-toggle">🌙 Dark Mode</button>
     </div>
-    <div class="timeline-container" id="main-content">
+    <div class="timeline-container">
         <h1>Squad Cycle Timeline</h1>
-        <div class="controls">
-            <div class="date-control">
-                <label for="current-date">Current Date:</label>
-                <input type="date" id="current-date" onchange="updateCurrentDate(this.value)">
-            </div>
-            <button class="control-button" onclick="exportTimeline()">
-                📥 Export Timeline
-            </button>
-            <button class="control-button" onclick="resetToToday()">
-                ⏰ Reset to Today
-            </button>
-        </div>
+        
+        <div id="current-cycle-display"></div>
+        
         <div id="timeline-cycles" role="list" aria-label="Squad cycles list"></div>
         <div class="timeline-bar" id="timeline-bar" role="region" aria-label="Timeline visualization"></div>
         <div id="current-indicator" role="complementary" aria-label="Current date indicator"></div>
-        <div id="tooltip" class="tooltip" role="tooltip"></div>
+        
         <footer class="footer">
             <a href="https://www.notion.so/mindbody/18adda30e2318059a801d403b3f33936?v=18adda30e2318059ab15000c753efefe" target="_blank" rel="noopener" class="source-link">Source of Truth</a>
         </footer>
-        
-        <div class="detailed-timeline">
-            <h2>Detailed Timeline View</h2>
-            <div id="detailed-timeline-content"></div>
-        </div>
     </div>
     <script>
         // Squad cycles data
         const squadCycles = [
-            { name: '2025.Q1.H1', start: '2024-12-04', end: '2025-02-18' },
-            { name: '2025.Q1.H2', start: '2025-02-19', end: '2025-04-01' },
-            { name: '2025.Q2.H1', start: '2025-04-02', end: '2025-05-14' },
-            { name: '2025.Q2.H2', start: '2025-05-15', end: '2025-06-26' },
-            { name: '2025.Q3.H1', start: '2025-06-27', end: '2025-08-01' },
-            { name: '2025.Q3.H2', start: '2025-08-04', end: '2025-09-15' },
-            { name: '2025.Q4.H1', start: '2025-09-16', end: null },
-            { name: '2025.Q4.H2', start: null, end: null },
+            { name: '2025.Q3.H2', start: '2025-08-12', end: '2025-09-23' },
+            { name: '2025.Q4.H1', start: '2025-09-24', end: '2025-11-04' },
+            { name: '2025.Q4.H2', start: '2025-11-13', end: '2025-12-24' },
+            { name: '2025.Q1.H2', start: '2025-02-12', end: '2025-03-25' },
+            { name: '2025.Q1.H1', start: '2025-01-01', end: '2025-02-11' },
+            { name: '2025.Q2.H2', start: '2025-05-07', end: '2025-06-24' },
+            { name: '2025.Q3.H1', start: '2025-06-25', end: '2025-08-12' },
+            { name: '2025.Q2.H1', start: '2025-03-26', end: '2025-05-06' },
         ];
 
         function getLabelForCycle(start, end, today) {
@@ -498,79 +349,8 @@
         const allDates = squadCycles.flatMap(c => [parseDate(c.start), parseDate(c.end)]).filter(Boolean);
         const minDate = new Date(Math.min(...allDates));
         const maxDate = new Date(Math.max(...allDates));
-        let today = new Date('2025-05-26'); // Use current date
+        let today = new Date(); // Use actual current date
 
-        // Render cycles as segments
-        const bar = document.getElementById('timeline-bar');
-        bar.innerHTML = '';
-        let barHTML = '';
-        let minLeft = 100, maxRight = 0;
-        squadCycles.forEach((cycle, idx) => {
-            if (!cycle.start) return; // skip cycles with no start
-            const start = parseDate(cycle.start);
-            const end = cycle.end ? parseDate(cycle.end) : maxDate;
-            const total = maxDate - minDate;
-            const left = ((start - minDate) / total) * 100;
-            const width = ((end - start) / total) * 100;
-            minLeft = Math.min(minLeft, left);
-            maxRight = Math.max(maxRight, left + width);
-            const isCurrent = today >= start && today <= end;
-            
-            const tooltipContent = `
-                <strong>${cycle.name}</strong><br>
-                Status: ${cycle.label}<br>
-                Start: ${cycle.start}<br>
-                End: ${cycle.end || 'TBD'}<br>
-                ${isCurrent ? '<em>Current Cycle</em>' : ''}
-            `;
-            
-            barHTML += `<div 
-                class="cycle-segment${isCurrent ? ' current' : ''}" 
-                style="left:${left}%;width:${width}%" 
-                role="button"
-                tabindex="0"
-                aria-label="${cycle.name}: ${cycle.label} from ${cycle.start}${cycle.end ? ' to ' + cycle.end : ''}"
-                onmouseover="showTooltip(event, '${tooltipContent}')"
-                onmouseout="hideTooltip()"
-                onkeypress="if(event.key === 'Enter') showTooltip(event, '${tooltipContent}')"
-                onblur="hideTooltip()">
-                <span class="cycle-label">${cycle.name}</span>
-            </div>`;
-        });
-        bar.innerHTML = barHTML;
-        // Ensure the bar is always 100% width and segments are visible
-        bar.style.minWidth = '100%';
-        bar.style.overflow = 'visible';
-
-        // Update labels dynamically based on current date
-        const updatedCycles = squadCycles.map(cycle => {
-            const label = getLabelForCycle(cycle.start, cycle.end, today);
-            return { ...cycle, label };
-        });
-
-        // Render cycle labels below
-        const cyclesDiv = document.getElementById('timeline-cycles');
-        cyclesDiv.innerHTML = updatedCycles.map(c => c.start ? 
-            `<div 
-                class="cycle-info${c.label === 'Current' ? ' current' : ''}"
-                role="listitem"
-                tabindex="0"
-                aria-label="${c.name} - ${c.label} cycle from ${c.start}${c.end ? ' to ' + c.end : ''}">
-                <b>${c.name}</b> 
-                <span>${c.label}</span><br>
-                <small>${c.start}${c.end ? ' → ' + c.end : ''}</small>
-            </div>` : '').join('');
-
-        // Show current date indicator
-        const indicator = document.getElementById('current-indicator');
-        const total = maxDate - minDate;
-        const elapsed = Math.max(0, Math.min(today - minDate, total));
-        const percent = total > 0 ? (elapsed / total) * 100 : 0;
-        indicator.innerHTML = `<div class="timeline-indicator" style="left:calc(${percent}% - 2px)">
-            <div class="indicator-label">${today.toLocaleDateString()}</div>
-        </div>`;
-
-        // Add this before your existing script
         function toggleTheme() {
             const html = document.documentElement;
             const button = document.getElementById('theme-toggle');
@@ -594,80 +374,59 @@
             document.getElementById('theme-toggle').innerHTML = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
         }
 
-        // Add before existing script
-        function showTooltip(event, content) {
-            const tooltip = document.getElementById('tooltip');
-            tooltip.innerHTML = content;
-            tooltip.classList.add('visible');
-            
-            // Position tooltip
-            const rect = event.target.getBoundingClientRect();
-            tooltip.style.left = `${rect.left + window.scrollX}px`;
-            tooltip.style.top = `${rect.bottom + window.scrollY + 10}px`;
-        }
-
-        function hideTooltip() {
-            const tooltip = document.getElementById('tooltip');
-            tooltip.classList.remove('visible');
-        }
-
-        // Add before existing script
-        function getCurrentDate() {
-            return new Date().toISOString().split('T')[0];
-        }
-
-        function updateCurrentDate(newDate) {
-            today = new Date(newDate);
-            renderTimeline();
-        }
-
-        function resetToToday() {
-            const currentDate = getCurrentDate();
-            document.getElementById('current-date').value = currentDate;
-            today = new Date();
-            renderTimeline();
-        }
-
-        function exportTimeline() {
-            const container = document.querySelector('.timeline-container');
-            
-            // Create a simplified version for export
-            const exportData = {
-                date: today.toISOString(),
-                cycles: squadCycles.map(cycle => ({
-                    name: cycle.name,
-                    label: cycle.label,
-                    start: cycle.start,
-                    end: cycle.end,
-                    isCurrent: today >= new Date(cycle.start) && (!cycle.end || today <= new Date(cycle.end))
-                }))
-            };
-            
-            // Create and trigger download
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = window.URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `squad-cycle-timeline-${today.toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        }
-
-        // Modify your existing render code to be reusable
         function renderTimeline() {
-            const bar = document.getElementById('timeline-bar');
-            bar.innerHTML = '';
-            let barHTML = '';
-            let minLeft = 100, maxRight = 0;
-            
             // Update labels dynamically based on current date
             const updatedCycles = squadCycles.map(cycle => {
                 const label = getLabelForCycle(cycle.start, cycle.end, today);
                 return { ...cycle, label };
             });
+
+            // Find current cycle
+            const currentCycle = updatedCycles.find(cycle => cycle.label === 'Current');
+
+            // Display current cycle prominently
+            const currentDisplay = document.getElementById('current-cycle-display');
+            if (currentCycle) {
+                // Calculate progress
+                const startDate = new Date(currentCycle.start);
+                const endDate = new Date(currentCycle.end);
+                const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                const daysElapsed = Math.max(0, Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)));
+                const daysRemaining = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+                const progressPercentage = Math.min(Math.max((daysElapsed / totalDays) * 100, 0), 100);
+                
+                currentDisplay.innerHTML = `
+                    <div class="current-cycle-highlight">
+                        <h2>🎯 Current Squad Cycle</h2>
+                        <p><strong>${currentCycle.name}</strong></p>
+                        <p>${currentCycle.start} → ${currentCycle.end}</p>
+                        <p>Today: ${today.toLocaleDateString()}</p>
+                        
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span class="progress-percentage">${Math.round(progressPercentage)}% Complete</span>
+                                <span class="days-info">${daysElapsed} of ${totalDays} days (${daysRemaining} remaining)</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                currentDisplay.innerHTML = `
+                    <div class="current-cycle-highlight">
+                        <h2>📅 No Current Cycle</h2>
+                        <p>Today: ${today.toLocaleDateString()}</p>
+                        <p>No squad cycle is currently active.</p>
+                    </div>
+                `;
+            }
+
+            // Render timeline bar
+            const bar = document.getElementById('timeline-bar');
+            bar.innerHTML = '';
+            let barHTML = '';
             
             updatedCycles.forEach((cycle, idx) => {
                 if (!cycle.start) return;
@@ -676,41 +435,22 @@
                 const total = maxDate - minDate;
                 const left = ((start - minDate) / total) * 100;
                 const width = ((end - start) / total) * 100;
-                minLeft = Math.min(minLeft, left);
-                maxRight = Math.max(maxRight, left + width);
                 const isCurrent = cycle.label === 'Current';
-                const tooltipContent = `
-                    <strong>${cycle.name}</strong><br>
-                    Status: ${cycle.label}<br>
-                    Start: ${cycle.start}<br>
-                    End: ${cycle.end || 'TBD'}<br>
-                    ${isCurrent ? '<em>Current Cycle</em>' : ''}
-                `;
+                
                 barHTML += `<div 
                     class="cycle-segment${isCurrent ? ' current' : ''}"
-                    style="left:${left}%;width:${width}%"
-                    role="button"
-                    tabindex="0"
-                    aria-label="${cycle.name}: ${cycle.label} from ${cycle.start}${cycle.end ? ' to ' + cycle.end : ''}"
-                    onmouseover="showTooltip(event, '${tooltipContent}')"
-                    onmouseout="hideTooltip()"
-                    onkeypress="if(event.key === 'Enter') showTooltip(event, '${tooltipContent}')"
-                    onblur="hideTooltip()">
+                    style="left:${left}%;width:${width}%">
                     <span class="cycle-label">${cycle.name}</span>
                 </div>`;
             });
             bar.innerHTML = barHTML;
-            bar.style.minWidth = '100%';
-            bar.style.overflow = 'visible';
 
             // Render cycle labels below
             const cyclesDiv = document.getElementById('timeline-cycles');
             cyclesDiv.innerHTML = updatedCycles.map(c => c.start ? 
                 `<div 
                     class="cycle-info${c.label === 'Current' ? ' current' : ''}"
-                    role="listitem"
-                    tabindex="0"
-                    aria-label="${c.name} - ${c.label} cycle from ${c.start}${c.end ? ' to ' + c.end : ''}">
+                    role="listitem">
                     <b>${c.name}</b> 
                     <span>${c.label}</span><br>
                     <small>${c.start}${c.end ? ' → ' + c.end : ''}</small>
@@ -724,57 +464,10 @@
             indicator.innerHTML = `<div class="timeline-indicator" style="left:calc(${percent}% - 2px)">
                 <div class="indicator-label">${today.toLocaleDateString()}</div>
             </div>`;
-
-            // Render the detailed timeline
-            renderDetailedTimeline(updatedCycles);
-        }
-
-        // Add to your renderTimeline function
-        function renderDetailedTimeline(updatedCycles) {
-            const container = document.getElementById('detailed-timeline-content');
-            const sortedCycles = [...updatedCycles]
-                .filter(cycle => cycle.start)
-                .sort((a, b) => new Date(a.start) - new Date(b.start));
-
-            container.innerHTML = sortedCycles.map(cycle => {
-                const start = new Date(cycle.start);
-                const end = cycle.end ? new Date(cycle.end) : null;
-                const isCurrent = cycle.label === 'Current';
-                
-                const formatDate = (date) => {
-                    if (!date) return 'TBD';
-                    return date.toLocaleDateString('en-US', { 
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    });
-                };
-
-                return `
-                    <div class="timeline-entry${isCurrent ? ' current' : ''}" 
-                         role="listitem" 
-                         aria-current="${isCurrent ? 'true' : 'false'}">
-                        <div class="timeline-date">
-                            ${formatDate(start).split(',')[0]}
-                        </div>
-                        <div class="timeline-content">
-                            <div class="timeline-title">
-                                ${cycle.name}
-                                <span class="timeline-status">${cycle.label}</span>
-                            </div>
-                            <div class="timeline-period">
-                                ${formatDate(start)} - ${formatDate(end)}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
         }
 
         // Initial setup
         document.addEventListener('DOMContentLoaded', () => {
-            // Set initial date
-            document.getElementById('current-date').value = today.toISOString().split('T')[0];
             renderTimeline();
         });
     </script>
